@@ -19,7 +19,7 @@ class Temporal_No_Overlapped_DWT(Stereo_Coding):
 
     def __init__(self):
         super().__init__()
-        logging.info(__doc__)
+        logging.info(__doc__) 
 
         self.wavelet = pywt.Wavelet(minimal.args.wavelet_name)
 
