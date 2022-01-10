@@ -14,14 +14,14 @@ from temporal_no_overlapped_DWT_coding import Temporal_No_Overlapped_DWT
 import math
 
 class Temporal_Overlapped_DWT(Temporal_No_Overlapped_DWT):
-
+    
     def __init__(self):
         super().__init__()
         logging.info(__doc__) 
         self.chunks = [self.generate_zero_chunk(), self.generate_zero_chunk(), self.generate_zero_chunk()]
         overlaped_area_size = self.max_filters_length * (1 << self.dwt_levels)
         self.overlaped_area_size = 1<<math.ceil(math.log(overlaped_area_size)/math.log(2))
-        #self.overlaped_area_size = 0
+        self.overlaped_area_size = 0
 
         zero_array = np.zeros(shape=minimal.args.frames_per_chunk+self.overlaped_area_size*2)
         coeffs = pywt.wavedec(zero_array, wavelet=self.wavelet, level=self.dwt_levels, mode="per")
@@ -36,13 +36,31 @@ class Temporal_Overlapped_DWT(Temporal_No_Overlapped_DWT):
 
         extended_chunk = np.concatenate((self.chunks[0][-self.overlaped_area_size:],self.chunks[1],self.chunks[2][self.overlaped_area_size:]))
 
-        #DWT_extended_chunk = super().analyze(extended_chunk)
-        DWT_extended_chunk = super().analyze(chunk)
+        DWT_extended_chunk = super().analyze(extended_chunk)
+        #DWT_extended_chunk = super().analyze(chunk)
 
         DWT_chunk = np.empty((minimal.args.frames_per_chunk, self.NUMBER_OF_CHANNELS), dtype=np.int32) #this is an empty chunk (numpy array)
 
-        #DWT_chunk = 
-        return DWT_extended_chunk
+        subband_size = pywt.wavedecn_shapes((DWT_extended_chunk.length,), wavelet='db2', level=3, mode='per')
+        
+        subband_middle_parts = []
+
+        #I don't really know how we should do it with a for loop
+        #levels = 3
+        # for l in range(levels):
+        #     subband_middle_parts.append(DWT_extended_chunk[self.overlaped_area_size/math.pow(2,l):])
+
+        #...so I'm going to do it like this:
+        subband_l2_h2 = DWT_extended_chunk[:len(DWT_extended_chunk)/2]
+        subband_l2 = subband_l2_h2[:len(subband_l2_h2)/2]
+        subband_h2 = subband_l2_h2[len(subband_l2_h2)/2:]
+        subband_h1 = DWT_extended_chunk[len(DWT_extended_chunk)/2:]
+
+        subband_middle_parts.append(subband_l2[len(subband_l2)/4:len(subband_l2)*3/4])
+        subband_middle_parts.append(subband_h2[len(subband_h2)/4:len(subband_h2)*3/4])
+        subband_middle_parts.append(subband_h1[len(subband_h1)/4:len(subband_h1)*3/4])
+
+        return np.concatenate(subband_middle_parts)
 
     def synthesize(self, chunk_DWT):
         '''Inverse DWT.'''
@@ -54,7 +72,9 @@ class Temporal_Overlapped_DWT(Temporal_No_Overlapped_DWT):
         # chunk = super().synthesize(chunk)
         return super().synthesize(chunk_DWT)
 
-class Temporal_Overlapped_DWT__verbose(Temporal_Overlapped_DWT):
+from temporal_no_overlapped_DWT_coding import Temporal_No_Overlapped_DWT__verbose
+
+class Temporal_Overlapped_DWT__verbose(Temporal_No_Overlapped_DWT__verbose):
     pass
 
 try:
